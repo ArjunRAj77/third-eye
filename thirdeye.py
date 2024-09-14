@@ -3,9 +3,24 @@ import spacy
 import random
 from io import StringIO
 from spacy.pipeline import EntityRuler
+import os
 
-# Load spaCy model
-nlp = spacy.load("en_core_web_md")
+# Define the model name
+model_name = "en_core_web_md"
+
+# Check if the model is available and load it
+def load_model(model_name):
+    try:
+        nlp = spacy.load(model_name)
+        print(f"Model '{model_name}' loaded successfully.")
+    except OSError:
+        print(f"Model '{model_name}' not found. Installing...")
+        os.system(f"python -m spacy download {model_name}")
+        nlp = spacy.load(model_name)
+    return nlp
+
+# Load the spaCy model
+nlp = load_model(model_name)
 
 # Add custom entity patterns based on the extracted key phrases from answer key
 def add_custom_entities(nlp, answer_key_dict):
