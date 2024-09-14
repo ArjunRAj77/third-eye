@@ -18,3 +18,11 @@
 - spaCy
 - Required spaCy model (`en_core_web_md`)
 
+# Screenshots
+
+<img width="1415" alt="image" src="https://github.com/user-attachments/assets/1683b94b-b2fe-4073-b5d5-de7e9b061cb9">
+
+<img width="1415" alt="image" src="https://github.com/user-attachments/assets/49654fc2-c999-4618-8a0e-e472adf36616">
+
+
+
