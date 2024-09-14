@@ -4,8 +4,8 @@ import spacy_streamlit
 import random
 from io import StringIO
 
-# Load spaCy model for NER (using small English model)
-nlp = spacy.load("en_core_web_sm")
+# Load spaCy model for NER (using medium or large model for better accuracy)
+nlp = spacy.load("en_core_web_md")  # Use en_core_web_md for more accuracy
 
 # Define random color generator for highlighting
 def random_color():
