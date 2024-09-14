@@ -1,16 +1,61 @@
 import streamlit as st
 import spacy
-import spacy_streamlit
 import random
 from io import StringIO
+from spacy.pipeline import EntityRuler
 
-# Load spaCy model for NER (using medium or large model for better accuracy)
-nlp = spacy.load("en_core_web_md")  # Use en_core_web_md for more accuracy
+# Load spaCy model
+nlp = spacy.load("en_core_web_md")
 
-# Define random color generator for highlighting
-def random_color():
-    colors = ["#FFA07A", "#7FFFD4", "#FF69B4", "#98FB98", "#FFD700", "#ADD8E6"]
-    return random.choice(colors)
+# Add custom entity patterns based on the extracted key phrases from answer key
+def add_custom_entities(nlp, answer_key_dict):
+    # Create an EntityRuler and add patterns
+    if "entity_ruler" in nlp.pipe_names:
+        nlp.remove_pipe("entity_ruler")
+    
+    ruler = nlp.add_pipe("entity_ruler", before="ner")
+    
+    patterns = []
+    for question_num, answer in answer_key_dict.items():
+        key_phrases = extract_key_phrases(answer)
+        unique_phrases = list(set(key_phrases))
+        for phrase in unique_phrases:
+            patterns.append({
+                "label": "ANSWER",
+                "pattern": phrase
+            })
+    
+    ruler.add_patterns(patterns)
+
+# Function to manually extract key phrases (e.g., important nouns, names, dates)
+def extract_key_phrases(answer):
+    """
+    This function extracts key phrases from the answer text.
+    """
+    doc = nlp(answer)
+    key_phrases = []
+    
+    # Collect named entities (like PERSON, GPE, ORG)
+    for ent in doc.ents:
+        key_phrases.append(ent.text)
+    
+    # Optionally add important nouns (e.g., subjects)
+    for token in doc:
+        if token.pos_ == "NOUN" and token.text not in key_phrases:
+            key_phrases.append(token.text)
+    
+    return key_phrases
+
+# Define a color palette for highlighting
+color_palette = ["#FFA07A", "#7FFFD4", "#FF69B4", "#98FB98", "#FFD700", "#ADD8E6"]
+
+def get_color_for_question(question_num):
+    """
+    Get a consistent color for each question number.
+    """
+    colors = color_palette
+    index = int(question_num[1:]) % len(colors)  # Ensure index is within the color palette range
+    return colors[index]
 
 # Streamlit App
 def main():
@@ -33,32 +78,66 @@ def main():
         # Read uploaded files
         answer_key = read_file(answer_key_file)
         answer_sheet = read_file(answer_sheet_file)
+        
+        # Display the content of uploaded files
+        st.subheader("📄 **Answer Key:**")
+        st.text_area("Answer Key Content", value=answer_key, height=300)
 
-        # Display uploaded content with emojis
-        st.subheader("📜 **Answer Key**:")
-        st.write(answer_key)
-
-        st.subheader("📋 **Answer Sheet**:")
-        st.write(answer_sheet)
+        st.subheader("📄 **Answer Sheet:**")
+        st.text_area("Answer Sheet Content", value=answer_sheet, height=300)
 
         # Add the "Run" button
-        if st.button("Analyse 🔍"):
-            # Process Answer Key using NER
-            st.subheader("🔑 **Extracted Key Elements from Answer Key:**")
-            doc_key = nlp(answer_key)
-            spacy_streamlit.visualize_ner(doc_key, labels=nlp.get_pipe("ner").labels)
+        if st.button("Run NER Analysis 🔍"):
+            # Split the answer key and answer sheet by questions
+            answer_key_dict = split_by_question(answer_key)
+            answer_sheet_dict = split_by_question(answer_sheet)
 
-            # Highlight the key elements in the answer sheet
-            st.subheader("🖍️ **Highlighted Answer Sheet:**")
-            highlighted_answer_sheet = highlight_entities(answer_sheet, doc_key)
-            st.markdown(highlighted_answer_sheet, unsafe_allow_html=True)
+            # Create custom entities for key phrases in each answer key question
+            add_custom_entities(nlp, answer_key_dict)
+
+            # Process each question individually
+            st.subheader("🖍️ **Highlighted Answer Sheet by Question:**")
+            for question_num, answer_text in answer_sheet_dict.items():
+                st.markdown(f"### {question_num}:")
+                if question_num in answer_key_dict:
+                    color = get_color_for_question(question_num)  # Get color for current question
+                    highlighted_text = highlight_entities(answer_text, nlp(answer_key_dict[question_num]), color)
+                    st.markdown(highlighted_text, unsafe_allow_html=True)
+                else:
+                    # If no key found for the question, show the original answer
+                    st.markdown(answer_text)
 
 def read_file(uploaded_file):
     stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
     return stringio.read()
 
-# Function to highlight entities in the answer sheet
-def highlight_entities(answer_sheet, doc_key):
+def split_by_question(text):
+    """
+    Splits the text by question number (e.g., Q1:, Q2:) and returns a dictionary.
+    Assumes the format: "Q1: <answer>"
+    """
+    questions = {}
+    current_question = None
+    current_text = []
+    
+    for line in text.split("\n"):
+        if line.strip():  # Process non-empty lines
+            if line.startswith("Q"):  # Detect question number
+                if current_question:
+                    questions[current_question] = "\n".join(current_text)
+                current_question = line.split(":")[0].strip()  # e.g., "Q1"
+                current_text = [line.split(":")[1].strip()]  # Store the first part of the answer
+            else:
+                current_text.append(line.strip())  # Add remaining lines of the answer
+                
+    # Add the last question
+    if current_question:
+        questions[current_question] = "\n".join(current_text)
+    
+    return questions
+
+# Function to highlight entities in the answer sheet for a given question
+def highlight_entities(answer_sheet, doc_key, color):
     """
     Function to highlight key entities in the answer sheet text, 
     preserving the original format with spacing and line breaks.
@@ -72,7 +151,6 @@ def highlight_entities(answer_sheet, doc_key):
         for ent in doc_key.ents:
             # If the token matches an entity in the answer key
             if token.text == ent.text:
-                color = random_color()  # Generate random color for the entity
                 highlighted_text += f'<mark style="background-color: {color};">{token.text}</mark>{token.whitespace_}'
                 found_match = True
                 break

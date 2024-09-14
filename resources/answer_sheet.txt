@@ -1,6 +1,2 @@
-Answer Sheet:
-1. The capital of France is Paris, which is known for its iconic Eiffel Tower.
-2. The United Nations came into existence after World War II, specifically on October 24, 1945.
-3. Water, with the chemical formula H2O, covers about 71% of the Earth's surface.
-4. Neil Armstrong was the astronaut who first stepped onto the lunar surface in 1969.
-5. The Great Wall of China, one of the world's wonders, stretches across northern China.
+Q1: The first person to walk on the moon was Neil Armstrong.
+Q2: The capital of France is Paris.

@@ -1,6 +1,2 @@
-Answer Key:
-1. The capital of France is **Paris**.
-2. The United Nations was established on **October 24, 1945**.
-3. The chemical symbol for water is **H2O**.
-4. The first man to walk on the moon was **Neil Armstrong**.
-5. The Great Wall of China is located in **China**.
+Q1: Neil Armstrong was the first person to walk on the moon.
+Q2: Paris is the capital city of France.
